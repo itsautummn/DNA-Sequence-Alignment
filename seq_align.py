@@ -2,49 +2,51 @@ import sys
 import csv
 import string
 
-"""
-Steps:
-    1. Import all necessary files into proper data sets
-"""
-def sequence_alignment(first: string, second: string):
-    # Set up all variables
-    costMatrix = []
 
+def sequence_alignment(first: string, second: string):
     # Import all necessary files into proper data sets
+    costMatrix = []
     with open("imp2cost.txt", "r") as fcost:
         csvCost = csv.reader(fcost)
         for line in csvCost:
             costMatrix.append(line)
     finput = open("imp2input.txt", "r")
     x = finput.readline()
-    print(f"Length 1 = {len(x.split(",")[0])}\nLength 2 = {len(x.split(",")[1])}")
+
+    # Perform the edit distance calculations
     minDist, distMatrix = edit_dist(x.split(",")[0], x.split(",")[1], costMatrix)
+
+    # Print statements
     print(f"minDist = {minDist}")
-    for line in distMatrix:
-        print(line)
+    # for line in distMatrix:
+    #     print(line)
 
 
 def edit_dist(first: string, second: string, costMatrix: list[list]):
-    print(f"second[59] {second[59]}")
+    # This caused us so much headache to figure out
+    # The second string includes a newline character, so the length is altered because of it
+    # Fixed it by doing the below:
     lenFirst = len(first)
     lenSecond = len(second) - 1
 
-    # Set up the 2D lists for later use (why is this so hard)
-    print(lenSecond)
-    maxLen = max(lenFirst, lenSecond)
-    ptr = [[None] * maxLen] * maxLen
-    ptr[0][0] = 0
-
+    # Set up the 2D distMatrix list
     distMatrix = []
     for i in range(lenFirst):
         distMatrix.append([i])
         for j in range(1, lenSecond):
             distMatrix[i].append(j)
     
-    for i in range(1, lenFirst):
-        print(f"Outer {i}")
+    # Set up the 2D ptr list
+    ptr = []
+    for i in range(lenFirst):
+        ptr.append([None])
         for j in range(1, lenSecond):
-            print(f"Index {j}")
+            ptr[i].append(None)
+
+    # Fill in the 2D distMatrix list and the 2D ptr list
+    # Largely similar to the psuedocode provided in lecture
+    for i in range(1, lenFirst):
+        for j in range(1, lenSecond):
             distMatrix[i][j] = min(
                 distMatrix[i - 1][j] + 1,
                 distMatrix[i][j - 1] + 1,
@@ -62,20 +64,23 @@ def edit_dist(first: string, second: string, costMatrix: list[list]):
 
 
 def diff(a, b, costMatrix) -> int:
-    fi = 0
-    si = 0
+    # Very crude and inefficient way of finding the cost of two characters via the cost matrix
+    x, y = 0
+
     for i in range(len(costMatrix)):
         if costMatrix[i][0] == a:
-            fi = i
+            x = i
             break
+
     for j in range(len(costMatrix)):
         if costMatrix[0][j] == b:
-            si = j
+            y = j
             break
-    return int(costMatrix[fi][si])
+
+    return int(costMatrix[x][y])
 
 
-def backtrace():
+def backtrace(): # Not implemented yet
     pass
     
 
