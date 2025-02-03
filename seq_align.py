@@ -9,21 +9,24 @@ Steps:
 def sequence_alignment(first: string, second: string):
     # Set up all variables
     costMatrix = [[]]
-    distMatrix = [[]]
 
     # Import all necessary files into proper data sets
     with open("imp2cost.txt", "r") as fcost:
         csvCost = csv.reader(fcost)
-        for lines in csvCost:
-            print(lines)
+        for line in csvCost:
+            costMatrix.append(line)
     finput = open("imp2input.txt", "r")
     for x in finput:
-        edit_dist(x.split(",")[0], x.split(",")[1])
+        edit_dist(x.split(",")[0], x.split(",")[1], costMatrix)
+    print(costMatrix)
 
 
-def edit_dist(first: string, second: string, distMatrix, costMatrix):
+def edit_dist(first: string, second: string, costMatrix: list[list]):
+    # Set up the 2D lists for later use (why is this so hard)
+    minLen = min(len(first), len(second))
+    distMatrix = [[None] * minLen] * minLen
     distMatrix[0][0] = 0
-    ptr = [[]]
+    ptr = [[None] * minLen] * minLen
     ptr[0][0] = 0
 
     for i in range(1, len(first)):
@@ -56,6 +59,7 @@ def diff(a, b) -> int:
         return 0
     if a != b:
         return 1
+
 
 def backtrace():
     pass
