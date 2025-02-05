@@ -31,6 +31,16 @@ def sequence_alignment():
             f, s = backtrace(bt, a, b)
 
             fo.write(f"{f},{s}:{md}\n")
+            compare(f, s, md, cm)
+
+    # # Debugging
+    # x = finput.readline()
+    # a = x.split(",")[0]
+    # b = x.split(",")[1][:-1] # Remove the newline character
+    # md, bt = edit_dist(a, b, cm)
+    # f, s = backtrace(bt, a, b)
+    # print(f"{f},{s}:{md}")
+
 
 
 """
@@ -53,6 +63,10 @@ def edit_dist(f: string, s: string, cm: list[list]) -> (int, list[list]): # type
     dm = [["F" for i in range(len(s) + 1)] for j in range(len(f) + 1)]
     dm[0][0] = int(cm[cdx["-"]][cdx["-"]])
 
+    # Set up the 2D pointer matrix
+    ptr = [[1 for i in range(len(s) + 1)] for j in range(len(f) + 1)]
+    ptr[0][0] = 0
+
     for i in range(1, len(f) + 1):
         dm[i][0] = dm[i - 1][0] + int(cm[cdx[f[i - 1]]][cdx["-"]])
     for j in range(1, len(s) + 1):
@@ -60,17 +74,17 @@ def edit_dist(f: string, s: string, cm: list[list]) -> (int, list[list]): # type
 
     for i in range(1, len(f) + 1):
         for j in range(1, len(s) + 1):
-            dm[i][j] = min(dm[i - 1][j] + int(cm[cdx[f[i - 1]]][cdx["-"]]),
-                           dm[i][j - 1] + int(cm[cdx["-"]][cdx[s[j - 1]]]),
-                           dm[i - 1][j - 1] + int(cm[cdx[f[i - 1]]][cdx[s[j - 1]]]))
+            dm[i][j] = min(dm[i - 1][j] + int(cm[cdx[f[i - 1]]][cdx["-"]]),             # 1
+                           dm[i][j - 1] + int(cm[cdx["-"]][cdx[s[j - 1]]]),             # 2
+                           dm[i - 1][j - 1] + int(cm[cdx[f[i - 1]]][cdx[s[j - 1]]]))    # 3
 
     return dm[len(f)][len(s)], dm
 
 
 def backtrace(bt, f, s):
     # Indecies
-    i = len(f) - 1
-    j = len(s) - 1
+    i = len(f)
+    j = len(s)
 
     # Aligned strings
     fa = ""
@@ -78,37 +92,36 @@ def backtrace(bt, f, s):
 
     # Backtrace by finding the minimum from the top right corner to the bottom left
     # Note that in the actual implemenation, the top right corner is actually the bottom right, and the bottom left is actually the top left, this is just how it is with 2D matrices
-    while i >= 0 and j >= 0:
-        # The next direction is the minimum of all directions
-        n = min(bt[i - 1][j],
-                bt[i][j - 1], 
-                bt[i - 1][j - 1])
-
-        if n == bt[i - 1][j]:   # If next is left
-            fa = f[i] + fa
+    while i > 0 and j > 0:  
+        x = bt[i - 1][j]
+        y = bt[i][j - 1]
+        z = bt[i - 1][j - 1]
+            
+        if z <= x and z <= y:   # Diagonal
+            fa = f[i - 1] + fa
+            sa = s[j - 1] + sa
+            i -= 1
+            j -= 1
+        elif x <= y and x <= z: # Left
+            fa = f[i - 1] + fa
             sa = "-" + sa
             i -= 1
-        elif n == bt[i][j - 1]: # If next is down
+        elif y <= x and y <= z: # Down
             fa = "-" + fa
-            sa = s[j] + sa
+            sa = s[j - 1] + sa
             j -= 1
-        else:                   # If next is diagonal
-            fa = f[i] + fa
-            sa = s[j] + sa
-            i -= 1
-            j -= 1
-    
-    # Clean up any left over characters
-    while i >= 0:
-        fa = f[i] + fa
-        sa = "-" + sa
-        i -= 1
-    while j >= 0:
-        fa = "-" + fa
-        sa = s[j] + sa
-        j -= 1
 
     return fa, sa
+
+
+# Debugging
+def compare(f, s, md, cm):
+    total = 0
+
+    for i in range(len(f)):
+        total += int(cm[cdx[f[i]]][cdx[s[i]]])
+    
+    print(f"Totals match: {total == md} | Expected total: {md} | Actual total: {total}")
 
 
 if __name__ == "__main__":
