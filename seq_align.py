@@ -1,88 +1,126 @@
-import sys
 import csv
 import string
 
+# Global dictionary for accessing the cost matrix easier
+cdx = {
+    "*": 0,
+    "-": 1,
+    "A": 2,
+    "T": 3,
+    "G": 4,
+    "C": 5
+}
 
-def sequence_alignment(first: string, second: string):
+
+def sequence_alignment():
     # Import all necessary files into proper data sets
-    costMatrix = []
+    cm = []
     with open("imp2cost.txt", "r") as fcost:
         csvCost = csv.reader(fcost)
         for line in csvCost:
-            costMatrix.append(line)
+            cm.append(line)
     finput = open("imp2input.txt", "r")
-    x = finput.readline()
 
     # Perform the edit distance calculations
-    minDist, distMatrix = edit_dist(x.split(",")[0], x.split(",")[1], costMatrix)
+    with open("imp2output.txt", "w") as fo:
+        for x in finput:
+            a = x.split(",")[0]
+            b = x.split(",")[1][:-1] # Remove the newline character
 
-    # Print statements
-    print(f"minDist = {minDist}")
-    # for line in distMatrix:
-    #     print(line)
+            md, bt = edit_dist(a, b, cm)
+            f, s = backtrace(bt, a, b, cm)
+
+            fo.write(f"{f},{s}:{md}\n")
 
 
-def edit_dist(first: string, second: string, costMatrix: list[list]):
-    # This caused us so much headache to figure out
-    # The second string includes a newline character, so the length is altered because of it
-    # Fixed it by doing the below:
-    lenFirst = len(first)
-    lenSecond = len(second) - 1
+"""
+Steps:
+    1.  The base cases are the first x and y axis lines, which both start
+        at (0, 0) and "increment" up `i` and `j` based on a) the previous 
+        cell `i - 1` or `j - 1` and b) the cost of the current character 
+        in x based on the given cost matrix. 
 
-    # Set up the 2D distMatrix list
-    distMatrix = []
-    for i in range(lenFirst):
-        distMatrix.append([i])
-        for j in range(1, lenSecond):
-            distMatrix[i].append(j)
+    2.  The unknown cases (all cells from i = `1..n` and j = `1..m`) are
+        found by taking the minimum of the three cells to the right, below, 
+        and diagonal of the current cell + the cost of the character. 
+        For example: cell `[i][j]` is equal to 
+           `min([i - 1][j] + diff(i - 1, "-"), 
+                [i][j - 1] + diff("-", j - 1),
+                [i - 1][j - 1] + diff(i - 1, j - 1))
+"""
+def edit_dist(f: string, s: string, cm: list[list]) -> (int, list[list]): # type: ignore
+    # Set up the 2D distance matrix
+    dm = [["F" for i in range(len(s) + 1)] for j in range(len(f) + 1)]
+    dm[0][0] = int(cm[cdx["-"]][cdx["-"]])
+
+    # Set up the 2D pointer matrix
+    ptr = [[1 for i in range(len(s) + 1)] for j in range(len(f) + 1)]
+    ptr[0][0] = 0
+
+    for i in range(1, len(f) + 1):
+        dm[i][0] = dm[i - 1][0] + int(cm[cdx[f[i - 1]]][cdx["-"]])
+    for j in range(1, len(s) + 1):
+        dm[0][j] = dm[0][j - 1] + int(cm[cdx["-"]][cdx[s[j - 1]]])
+
+    for i in range(1, len(f) + 1):
+        for j in range(1, len(s) + 1):
+            dm[i][j] = min(dm[i - 1][j] + int(cm[cdx[f[i - 1]]][cdx["-"]]),             # 1
+                           dm[i][j - 1] + int(cm[cdx["-"]][cdx[s[j - 1]]]),             # 2
+                           dm[i - 1][j - 1] + int(cm[cdx[f[i - 1]]][cdx[s[j - 1]]]))    # 3
+
+    return dm[len(f)][len(s)], dm
+
+
+def backtrace(bt, f, s, cm):
+    # Indecies
+    i = len(f)
+    j = len(s)
+
+    # Aligned strings
+    fa = ""
+    sa = ""
+
+    # Backtrace by finding the minimum from the top right corner to the bottom left
+    # Note that in the actual implemenation, the top right corner is actually the bottom right, and the bottom left is actually the top left, this is just how it is with 2D matrices
+    """
+        Ideas:
+            1. When checking the min, check the cell minus the cost of the direction of that cell
+                ^ WRONG: At least the implementation I tried, which was like: x = bt[i - 1][j] - int(cm[cdx[f[i - 1]]][cdx["-"]])
+            2. Only check the cost that is found in the cell
+                ^ PARTIALLY WRONG: It works for a few inputs, but not for all
+            3. When checking the min, check the cell + the cost of the direction of that cell
+                ^ WORKS
+    """
+    while i > 0 and j > 0:  
+        x = bt[i - 1][j] + int(cm[cdx[f[i - 1]]][cdx["-"]])
+        y = bt[i][j - 1] + int(cm[cdx["-"]][cdx[s[j - 1]]])
+        z = bt[i - 1][j - 1] + int(cm[cdx[f[i - 1]]][cdx[s[j - 1]]])
+            
+        if z <= x and z <= y:   # Diagonal
+            fa = f[i - 1] + fa
+            sa = s[j - 1] + sa
+            i -= 1
+            j -= 1
+        elif x <= y and x <= z: # Left
+            fa = f[i - 1] + fa
+            sa = "-" + sa
+            i -= 1
+        elif y <= x and y <= z: # Down
+            fa = "-" + fa
+            sa = s[j - 1] + sa
+            j -= 1
     
-    # Set up the 2D ptr list
-    ptr = []
-    for i in range(lenFirst):
-        ptr.append([None])
-        for j in range(1, lenSecond):
-            ptr[i].append(None)
+    while i > 0:
+        fa = f[i - 1] + fa
+        sa = "-" + sa
+        i -= 1
+    while j > 0:
+        fa = "-" + fa
+        sa = s[j - 1] + sa
+        j -= 1
 
-    # Fill in the 2D distMatrix list and the 2D ptr list
-    # Largely similar to the psuedocode provided in lecture
-    for i in range(1, lenFirst):
-        for j in range(1, lenSecond):
-            distMatrix[i][j] = min(
-                distMatrix[i - 1][j] + 1,
-                distMatrix[i][j - 1] + 1,
-                distMatrix[i - 1][j - 1] + diff(first[i], second[j], costMatrix)
-            )
-            match distMatrix[i][j]:
-                case 1:
-                    ptr[i][j] = ptr[i - 1][j]
-                case 2:
-                    ptr[i][j] = ptr[i][j - 1]
-                case 3:
-                    ptr[i][j] = ptr[i - 1][j - 1]
-    
-    return distMatrix[lenFirst- 1][lenSecond - 1], distMatrix
+    return fa, sa
 
-
-def diff(a, b, costMatrix) -> int:
-    # Very crude and inefficient way of finding the cost of two characters via the cost matrix
-    x, y = 0
-
-    for i in range(len(costMatrix)):
-        if costMatrix[i][0] == a:
-            x = i
-            break
-
-    for j in range(len(costMatrix)):
-        if costMatrix[0][j] == b:
-            y = j
-            break
-
-    return int(costMatrix[x][y])
-
-
-def backtrace(): # Not implemented yet
-    pass
-    
 
 if __name__ == "__main__":
-    sequence_alignment("foo", "bar")
+    sequence_alignment()
