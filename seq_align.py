@@ -53,10 +53,6 @@ def edit_dist(f: string, s: string, cm: list[list]) -> (int, list[list]): # type
     dm = [["F" for i in range(len(s) + 1)] for j in range(len(f) + 1)]
     dm[0][0] = int(cm[cdx["-"]][cdx["-"]])
 
-    # Set up the 2D pointer matrix
-    ptr = [[1 for i in range(len(s) + 1)] for j in range(len(f) + 1)]
-    ptr[0][0] = 0
-
     for i in range(1, len(f) + 1):
         dm[i][0] = dm[i - 1][0] + int(cm[cdx[f[i - 1]]][cdx["-"]])
     for j in range(1, len(s) + 1):
