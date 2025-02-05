@@ -110,6 +110,15 @@ def backtrace(bt, f, s):
             fa = "-" + fa
             sa = s[j - 1] + sa
             j -= 1
+    
+    while i > 0:
+        fa = f[i - 1] + fa
+        sa = "-" + sa
+        i -= 1
+    while j > 0:
+        fa = "-" + fa
+        sa = s[j - 1] + sa
+        j -= 1
 
     return fa, sa
 
