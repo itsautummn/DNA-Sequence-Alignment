@@ -82,15 +82,6 @@ def backtrace(bt, f, s, cm):
 
     # Backtrace by finding the minimum from the top right corner to the bottom left
     # Note that in the actual implemenation, the top right corner is actually the bottom right, and the bottom left is actually the top left, this is just how it is with 2D matrices
-    """
-        Ideas:
-            1. When checking the min, check the cell minus the cost of the direction of that cell
-                ^ WRONG: At least the implementation I tried, which was like: x = bt[i - 1][j] - int(cm[cdx[f[i - 1]]][cdx["-"]])
-            2. Only check the cost that is found in the cell
-                ^ PARTIALLY WRONG: It works for a few inputs, but not for all
-            3. When checking the min, check the cell + the cost of the direction of that cell
-                ^ WORKS
-    """
     while i > 0 and j > 0:  
         x = bt[i - 1][j] + int(cm[cdx[f[i - 1]]][cdx["-"]])
         y = bt[i][j - 1] + int(cm[cdx["-"]][cdx[s[j - 1]]])
