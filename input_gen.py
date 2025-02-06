@@ -8,13 +8,11 @@ def generate(size: int):
         for i in range(10):
             # Pick a random length for each string, totaling to size 'size'
             # The length will be at least a third of the size, so that we don't get strings that are 1 and 499 often
-            fsize = random.randrange(size // 3, size)
-            ssize = size - fsize
 
-            for j in range(fsize):
+            for j in range(size // 2):
                 fo.write(random.choice(choices))
             fo.write(",")
-            for k in range(ssize):
+            for k in range(size // 2):
                 fo.write(random.choice(choices))
             fo.write("\n")
     fo.close()
