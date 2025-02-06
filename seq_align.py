@@ -1,5 +1,7 @@
+import sys
 import csv
 import string
+import getopt
 
 # Global dictionary for accessing the cost matrix easier
 cdx = {
@@ -12,17 +14,19 @@ cdx = {
 }
 
 
-def sequence_alignment():
+def sequence_alignment(cost_file: string = "imp2cost.txt",
+                       input_file: string = "imp2input.txt",
+                       output_file: string = "imp2output.txt"):
     # Import all necessary files into proper data sets
     cm = []
-    with open("imp2cost.txt", "r") as fcost:
+    with open(cost_file, "r") as fcost:
         csvCost = csv.reader(fcost)
         for line in csvCost:
             cm.append(line)
-    finput = open("imp2input.txt", "r")
+    finput = open(input_file, "r")
 
     # Perform the edit distance calculations
-    with open("imp2output.txt", "w") as fo:
+    with open(output_file, "w") as fo:
         for x in finput:
             a = x.split(",")[0]
             b = x.split(",")[1][:-1] # Remove the newline character
@@ -50,14 +54,16 @@ Steps:
 """
 def edit_dist(f: string, s: string, cm: list[list]) -> (int, list[list]): # type: ignore
     # Set up the 2D distance matrix
-    dm = [["F" for i in range(len(s) + 1)] for j in range(len(f) + 1)]
+    dm = [['F' for i in range(len(s) + 1)] for j in range(len(f) + 1)]
     dm[0][0] = int(cm[cdx["-"]][cdx["-"]])
 
+    # Set up the base cases, the axes (x, 0) and (y, 0)
     for i in range(1, len(f) + 1):
         dm[i][0] = dm[i - 1][0] + int(cm[cdx[f[i - 1]]][cdx["-"]])
     for j in range(1, len(s) + 1):
         dm[0][j] = dm[0][j - 1] + int(cm[cdx["-"]][cdx[s[j - 1]]])
 
+    # Fill in cell values
     for i in range(1, len(f) + 1):
         for j in range(1, len(s) + 1):
             dm[i][j] = min(dm[i - 1][j] + int(cm[cdx[f[i - 1]]][cdx["-"]]),             # 1
@@ -78,6 +84,15 @@ def backtrace(bt, f, s, cm):
 
     # Backtrace by finding the minimum from the top right corner to the bottom left
     # Note that in the actual implemenation, the top right corner is actually the bottom right, and the bottom left is actually the top left, this is just how it is with 2D matrices
+    """
+        Ideas:
+            1. When checking the min, check the cell minus the cost of the direction of that cell
+                ^ WRONG: At least the implementation I tried, which was like: x = bt[i - 1][j] - int(cm[cdx[f[i - 1]]][cdx["-"]])
+            2. Only check the cost that is found in the cell
+                ^ PARTIALLY WRONG: It works for a few inputs, but not for all
+            3. When checking the min, check the cell + the cost of the direction of that cell
+                ^ WORKS
+    """
     while i > 0 and j > 0:  
         x = bt[i - 1][j] + int(cm[cdx[f[i - 1]]][cdx["-"]])
         y = bt[i][j - 1] + int(cm[cdx["-"]][cdx[s[j - 1]]])
@@ -109,5 +124,28 @@ def backtrace(bt, f, s, cm):
     return fa, sa
 
 
+def main(argv):
+    cost_file = "imp2cost.txt"
+    input_file = "imp2input.txt"
+    output_file = "imp2output.txt"
+
+    try:
+        opts, args = getopt.getopt(argv, "c:i:o")    
+    except:
+        print("Error: Usage is 'seq_align.py -c <cost_file> -i <input_file> -o <output_file>")
+        print("If unsure, do not specify options")
+        sys.exit()
+    
+    for opt, arg in opts:
+        if opt in ['-c']:
+            cost_file = arg
+        elif opt in ['-i']:
+            input_file = arg
+        elif opt in ['-o']:
+            output_file = arg
+    
+    sequence_alignment(cost_file, input_file, output_file)
+
+
 if __name__ == "__main__":
-    sequence_alignment()
+    main(sys.argv[1:])
